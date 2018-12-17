@@ -1,0 +1,33 @@
+# Function to roll up data on specified keys with user input aggregation:
+'''
+This is a function which could be used to roll up data on a desired level.
+In case the dunction encounters a column on which a summary cfunction couldn't be applied,
+then it throws a warning, and exception is handled explicitly.
+'''
+'''
+Arguments:
+data: dataset on which to apply
+key: level to roll-up on (unique id)
+features: column to summarise
+stat: aggregation functions to be used
+'''
+
+# Function definition
+def summary(data, key, features, stat):
+    from pandas.core.groupby import DataError        # For handling errors related to not a 'Numeric' type  
+    df1 = pd.DataFrame(index = data.groupby(key).count().index).reset_index()
+    for stat in stat:
+        for col in features:
+            # This is the exception handling block.
+            try:
+                df = data.groupby(key).agg({col:str(stat)}).add_suffix('_'+stat)
+            except DataError:
+                print("Warning: You are trying to aggregate a non-numeric field")
+                break
+            
+            df = df.reset_index()
+            df1 = df1.merge(df, how='inner')                
+    return (df1)              # returns a dataframe with desired columns summarised on the unique key
+    
+# Example - This is using the classic titanic dataset
+# summary = summary(train, ['Survived','Pclass'], ['Age', 'Parch', 'Fare', 'Name'], ['sum','mean','count'])
