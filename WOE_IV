@@ -1,0 +1,71 @@
+# This is a function which returns the IV of selected features:
+
+def summary(data, key, features, stat):
+    from pandas.core.groupby import DataError        # For handling errors related to not a 'Numeric' type  
+    df1 = pd.DataFrame(index = data.groupby(key).count().index).reset_index()
+    for stat in stat:
+        for col in features:
+            # This is the exception handling block.
+            try:
+                df = data.groupby(key).agg({col:str(stat)}).add_suffix('_'+stat)
+            except DataError:
+                print("Warning: You are trying to aggregate a non-numeric field")
+                break            
+            df = df.reset_index()
+            df1 = df1.merge(df, how='inner')                
+    return (df1)
+
+def woe(data, var, target):
+    import numpy as np
+    df = data[[var+'_min', var+'_max', target+'_count', target+'_sum']]
+    df['Events%'] = (df[target+'_sum']/df[target+'_sum'].sum())
+    df['Non_Events%'] = (df[target+'_count'] - df[target+'_sum'])/(df[target+'_count'] - df[target+'_sum']).sum()
+    df['woe'] = np.log(df['Non_Events%']/df['Events%'])
+    df['IV'] = df['woe']*(df['Non_Events%'] - df['Events%'])
+    return df
+    
+def IV (data, cols, target):
+    df = pd.DataFrame(data[[cols, target]])
+    try:
+        df[cols+"_decile"] = pd.qcut(df[cols], 10, labels = False, retbins = False, precision=3)
+    except (TypeError, ValueError):
+        return(cols + " is a categorical or string variable, binning not possible")
+        pass
+    df = summary(df, [cols+"_decile"], [cols, target], ['min', 'max', 'count', 'sum'])
+    return woe(df, cols, target)
+    
+''' This is the class definition, objects of this type will have WOE and IV as its methods '''
+
+class data_attribute:
+    # This is a constructor, which gets called when an instance of this class is created.
+    def __init__(self, data, target):
+        self.data = data
+        self.target = target
+    # This is the function which returns WOE bins for all the variables of a column.
+    def WOE(self):
+        WOE = {}
+        for cols in self.data.columns:
+            if cols != self.target:
+                WOE[cols] = IV(self.data, cols, self.target)
+            else:
+                WOE[cols] = str("WOE for target variable not computed")
+        return WOE
+    # This is the function which returns IV values for all variables
+    def Info_value(self):
+        IV1 = {}
+        for cols in self.data.columns:
+            if cols != self.target:
+                try:
+                    IV1[cols] = IV(self.data, cols, self.target)['IV'].sum()
+                except TypeError:
+                    IV1[cols] = "NA"
+            else:
+                IV1[cols] = "NA"
+        return IV1
+        
+# Example:
+'''
+df = data_attribute(train, 'Survived')
+df.Info_value()
+df.WOE()
+'''
