@@ -36,6 +36,8 @@ def IV (data, cols, target):
     df = summary(df, [cols+"_decile"], [cols, target], ['min', 'max', 'count', 'sum'])
     return woe(df, cols, target)
     
+    # https://blogs.sas.com/content/sgf/2013/10/02/parallel-processing-in-sas-when-and-how-to-use-it/
+    
 ''' This is the class definition, objects of this type will have WOE and IV as its methods '''
 
 class data_attribute:
