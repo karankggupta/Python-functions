@@ -1,0 +1,50 @@
+#plot data
+import seaborn as sns
+import numpy as np
+import matplotlib.pyplot as plt
+import scipy
+
+# Simply put your data in place of data1, and update the file:
+data = data1
+file = "K://Kaggle Analytics/Grahs.pdf"
+
+def set_graph(var):
+
+    sns.set_style("whitegrid")
+    x1 = data.iloc[np.where(data.variable == var)]['interval']
+    y1 = data[data.variable==var].event_rate
+    x = pd.Categorical(x1).codes
+    y = y1
+    s = y1.astype(str)
+    df = pd.DataFrame({'x':x, 'y':np.array(y), 'group':np.array(s)})
+
+    regression = scipy.stats.linregress(x=df.x,y=df.y)
+    slope = '{:.2f}'.format(regression.slope)
+    intercept = '{:.2f}'.format(regression.intercept)
+    r_squared = '{:.2f}'.format(regression.rvalue ** 2)
+    
+    plt.figure()
+    sns.despine()
+    p1 = sns.stripplot(x = x1, y = y1, jitter=True, size=0, hue_order='smoker')
+    p1 = sns.regplot(x = "x", y = "y", data=df, scatter = True, fit_reg = True,  ci=False, color="g", line_kws=({'linestyle':':',"lw":4}))
+    p1.figure.set_size_inches(5,5)
+    # Set the Title of the graph from here
+    p1.axes.set_title('%s: y = %s * x + %s (R_Square = %s)' % (var, slope, intercept, r_squared), fontsize=15,color="black",alpha=0.8)
+
+    # Set the xlabel of the graph from here
+    p1.set_xlabel("Intervals",size = 15,color="g",alpha=1)
+    # Set the ylabel of the graph from here
+    p1.set_ylabel("Event Rates",size = 15,color="g",alpha=1)
+
+    for line in range(0, df.shape[0]):
+        p1.text(df.x[line]+0.2, df.y[line], df.group[line], horizontalalignment='left', size='medium', color='black',weight = 'semibold')
+    
+    
+    return
+    
+import matplotlib.backends.backend_pdf
+pdf = matplotlib.backends.backend_pdf.PdfPages(file)
+for values in data.groupby(data.variable).count().reset_index()['variable']:
+    set_graph(str(values))
+    pdf.savefig()
+pdf.close()
